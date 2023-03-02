@@ -7,10 +7,13 @@
 #include "Adafruit_BME680.h"
 #include "Adafruit_Sensor.h"
 #include "lum.h"
-//librarie timer
+//librairie timer
 #include "ESP32TimerInterrupt.h"
+//librarie temps
+#include <WiFiUdp.h>
+#include <NTPClient.h>
 
-#define TIMER0_INTERVAL_MS  20000
+#define TIMER0_INTERVAL_MS  60000
 
 
 ESP32Timer ITimer0(0);
@@ -24,6 +27,8 @@ const char* password ="ZorroDonDiego";
 Adafruit_BME680 bme;
 WiFiClient client;
 MQTTClient MQTTcli;
+WiFiUDP ntpUDP;
+NTPClient TimeCli(ntpUDP,"fr.pool.ntp.org", 3600, 60000);
 
 int GPIOLum = 35;//Pin de la photorésistance
 
@@ -43,6 +48,10 @@ bool boul;
 bool bret;
 
 int i;
+//Horaire mesure
+int iHours;
+int iMinute;
+String strDateMesure;
 
 bool IRAM_ATTR TimerHandler0(void * timerNo)
 {
@@ -64,7 +73,7 @@ void WiFi_Setup(){
 
 void MQTT_Setup(){
   MQTTcli.begin(ADRESSE_BROKER,1883,client);
-  MQTTcli.setKeepAlive(50);
+  MQTTcli.setKeepAlive(400);
   Serial.print("\nconnecting au broker\n");
   while (!MQTTcli.connect(ADRESSE_BROKER,"Maison","BananaChocolat",false)) {
     Serial.print(".");
@@ -120,6 +129,9 @@ void setup() {
   BME_Setup();
   //timer n°0 Setup
   Timer0_Setup();
+
+  TimeCli.begin();
+  TimeCli.setTimeOffset(1);//UTC+1 France
   //GPIO Setup
   pinMode(GPIOLum,INPUT);
 }
@@ -143,16 +155,23 @@ void loop() {
 
     if(WiFi.status()==WL_CONNECTED)
     {
-        
-        DynamicJsonDocument document(1064); //Convertie les valeurs des capteurs en chaine de caractère au format JSON
-        i++;
-        document["time"]=i;
-        document["temperature"]=strLum;
-        String charenvoie;
-        serializeJson(document,charenvoie);
-        
-      if(boul==true){                     //Envoie de la data
-        bret=MQTTcli.publish("Meteo/Luminosite",charenvoie,1,1);
+      //Envoie de la data
+      if(boul==true){   
+      TimeCli.update();
+      iHours=TimeCli.getHours();
+      iMinute=TimeCli.getMinutes();
+      strDateMesure=(String)iHours+':'+(String)iMinute;
+
+      DynamicJsonDocument document(1064); //Convertie les valeurs des capteurs en chaine de caractère au format JSON
+      i++;
+      document["time"]=strDateMesure;
+      document["temperature"]=strLum;
+      document["Luminosite"]=strTemp;
+      document["Humidite"]=strHumidity;
+      document["Pression"]=strPressure;
+      String charenvoie;
+      serializeJson(document,charenvoie);
+        bret=MQTTcli.publish("Meteo",charenvoie,1,1);
         Serial.println(bret);
         boul=false;
       }

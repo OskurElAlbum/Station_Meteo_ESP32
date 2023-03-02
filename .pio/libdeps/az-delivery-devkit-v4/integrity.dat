@@ -1,4 +1,5 @@
-adafruit/Adafruit BME680 Library@^2.0.2
-khoih-prog/ESP32TimerInterrupt@^2.3.0
 bblanchon/ArduinoJson@^6.20.1
+arduino-libraries/NTPClient@^3.2.1
+khoih-prog/ESP32TimerInterrupt@^2.3.0
 256dpi/MQTT@^2.5.0
+adafruit/Adafruit BME680 Library@^2.0.2
