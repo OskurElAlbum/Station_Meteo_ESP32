@@ -1,0 +1,75 @@
+<html>
+  <head>
+        <meta charset="UTF-8">
+        <title>Station Météo</title>
+        <meta name="La turbo station météo">
+        <script src = "https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type =" texte / javascript "></script>
+        <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.1.0/paho-mqtt.js" integrity="sha512-p8OrcnawEEpEiY7S96nMeaShY5AMcdRFYgnaR0ZmOgMSgL9pLNE4x5+MB0FTol7GeJGzEd9m4MAmmD8urOscvQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        --><link rel="Stylesheet" href="C:\save\technique\informatique\code\web\Projet Serveur Web\Serveur Web\style.css">
+        <script src="Script_Station_meteo.js" charset="UTF-8"></script>
+  </head>
+  <body>
+
+        <p>Luminosite</p>
+        
+        <button onclick="ledState(1)">LED ON</button>
+        <button onclick="ledState(0)">LED OFF</button><br>
+        <script type="text/javascript">
+        
+          // Create a client instance
+          // ############# ATTENTION: Enter Your MQTT TLS Port and host######## Supports only TLS Port
+        
+        
+         /* function ledState(state) {
+            if(state == 1) { message = new Paho.MQTT.Message("#on"); }
+            if(state == 0) { message = new Paho.MQTT.Message("#off"); }
+            message.destinationName = "esp/test";
+            client.send(message);
+          }*/
+          // Create a client instance: Broker, Port, Websocket Path, Client ID
+// Create a client instance
+//client = new Paho.MQTT.Client("host", port,"client_id");
+client = new Paho.MQTT.client("m11.cloudmqtt.com", 32903, "web_" + parseInt(Math.random() * 100, 10));
+
+  // set callback handlers
+  client.onConnectionLost = onConnectionLost;
+  client.onMessageArrived = onMessageArrived;
+  var options = {
+    useSSL: true,
+    userName: "username",
+    password: "password",
+    onSuccess:onConnect,
+    onFailure:doFail
+  }
+
+  // connect the client
+  client.connect(options);
+
+  // called when the client connects
+  function onConnect() {
+    // Once a connection has been made, make a subscription and send a message.
+    console.log("onConnect");
+    client.subscribe("/cloudmqtt");
+    message = new Paho.MQTT.Message("Hello CloudMQTT");
+    message.destinationName = "/cloudmqtt";
+    client.send(message);
+  }
+
+  function doFail(e){
+    console.log(e);
+  }
+
+  // called when the client loses its connection
+  function onConnectionLost(responseObject) {
+    if (responseObject.errorCode !== 0) {
+      console.log("onConnectionLost:"+responseObject.errorMessage);
+    }
+  }
+
+  // called when a message arrives
+  function onMessageArrived(message) {
+    console.log("onMessageArrived:"+message.payloadString);
+  }
+    </script>
+  </body>
+</html>

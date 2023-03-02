@@ -1,0 +1,1 @@
+int lux(float tension,int resolution ,int iPin);
