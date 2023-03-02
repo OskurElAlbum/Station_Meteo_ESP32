@@ -89,23 +89,7 @@ void BME_Setup(){
 }
 
 void Timer0_Setup(){
-
-}
-void setup() {
-  Serial.begin(9600);
-  
-  //WiFi Setup
-  WiFi_Setup();
-
-  //MQTT Setup
-  MQTT_Setup();
-
-  //BMESetup();
-  BME_Setup();
-
-  //timer0Setup()
-  
-	Serial.print(F("\nStarting TimerInterruptTest on "));
+  Serial.print(F("\nStarting TimerInterruptTest on "));
 	Serial.println(ARDUINO_BOARD);
 	Serial.println(ESP32_TIMER_INTERRUPT_VERSION);
 	Serial.print(F("CPU Frequency = "));
@@ -124,7 +108,19 @@ void setup() {
 	}
 	else
 		Serial.println(F("Can't set ITimer0. Select another freq. or timer"));
+}
 
+void setup() {
+  Serial.begin(9600);
+  //WiFi Setup
+  WiFi_Setup();
+  //MQTT Setup
+  MQTT_Setup();
+  //BMESetup;
+  BME_Setup();
+  //timer n°0 Setup
+  Timer0_Setup();
+  //GPIO Setup
   pinMode(GPIOLum,INPUT);
 }
 
