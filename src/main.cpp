@@ -13,32 +13,35 @@
 #include <WiFiUdp.h>
 #include <NTPClient.h>
 
-#define TIMER0_INTERVAL_MS  60000
+//IP Broker
+#define ADRESSE_BROKER "192.168.1.2"
 
-
-ESP32Timer ITimer0(0);
-
+//Identifiant WiFi
 const char* ssid ="Maison_Rosnoblet";
 const char* password ="ZorroDonDiego";
 
-#define ADRESSE_BROKER "192.168.1.2"
-
-
+ESP32Timer ITimer0(0);
 Adafruit_BME680 bme;
 WiFiClient client;
 MQTTClient MQTTcli;
 WiFiUDP ntpUDP;
 NTPClient TimeCli(ntpUDP,"fr.pool.ntp.org", 3600, 60000);
 
-int GPIOLum = 35;//Pin de la photorésistance
+//Interval entre 2 mesure en ms
+#define TIMER0_INTERVAL_MS  120000 
 
-String strLum;  //Valeur envoyer aux broker MQTT
+//Pin de la photorésistance
+int GPIOLum = 35;
+
+//Valeur envoyer aux broker MQTT
+String strLum;  
 String strTemp;
 String strHumidity;
 String strPressure;
 String strGas;
 
-int iLuminosite;  //Valeur quantifiable
+//mesure numérique
+int iLuminosite;  
 float fTemp;
 float fPressure;
 float fHumidity;
@@ -47,12 +50,12 @@ float fGas;
 bool boul;
 bool bret;
 
-int i;
 //Horaire mesure
 int iHours;
 int iMinute;
 String strDateMesure;
 
+//Intteruption timer
 bool IRAM_ATTR TimerHandler0(void * timerNo)
 {
   boul = true;
@@ -109,7 +112,7 @@ void Timer0_Setup(){
 	// For 64-bit timer counter
 	// For 16-bit timer prescaler up to 1024
 
-	// Interval in microsecs
+	// Interruption timer
 	if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS * 1000, TimerHandler0))
 	{
 		Serial.print(F("Starting  ITimer0 OK, millis() = "));
@@ -137,33 +140,38 @@ void setup() {
 }
 
 void loop() {
-  if (!bme.performReading()) {
+  if (!bme.performReading()) 
+  {
     Serial.println("Failed to perform reading :(");
-  return;
+    return;
   }
-  fTemp = bme.temperature;//transformation en valeur compréhensible
-  fHumidity =bme.humidity;
-  fPressure=(bme.pressure / 100.0);
-  fGas=(bme.gas_resistance / 1000.0);
-  iLuminosite=lux(3.3,12,GPIOLum);
+  if(WiFi.status()==WL_CONNECTED)
+  {
+    //Envoie de la data
+    if(boul==true)
+    { 
+      //transformation des mesures en valeur numérique
+      fTemp = bme.temperature;
+      fHumidity =bme.humidity;
+      fPressure=(bme.pressure / 100.0);
+      fGas=(bme.gas_resistance / 1000.0);
+      iLuminosite=lux(3.3,12,GPIOLum);
 
-  strTemp= (String) fTemp;
-  strHumidity = (String) fHumidity;
-  strPressure =(String)fPressure;
-  strGas = (String)fGas;
-  strLum=(String) iLuminosite;
+      //Conversion en chaine de caractère
+      strTemp= (String) fTemp;
+      strHumidity = (String) fHumidity;
+      strPressure =(String)fPressure;
+      strGas = (String)fGas;
+      strLum=(String) iLuminosite;
 
-    if(WiFi.status()==WL_CONNECTED)
-    {
-      //Envoie de la data
-      if(boul==true){   
-      TimeCli.update();
+      //Met à jour et met au format hh:mm l'heure de la mesure  
+      TimeCli.update(); 
       iHours=TimeCli.getHours();
       iMinute=TimeCli.getMinutes();
       strDateMesure=(String)iHours+':'+(String)iMinute;
 
+      //Met les données au format Json
       DynamicJsonDocument document(1064); //Convertie les valeurs des capteurs en chaine de caractère au format JSON
-      i++;
       document["time"]=strDateMesure;
       document["temperature"]=strLum;
       document["Luminosite"]=strTemp;
@@ -171,13 +179,16 @@ void loop() {
       document["Pression"]=strPressure;
       String charenvoie;
       serializeJson(document,charenvoie);
-        bret=MQTTcli.publish("Meteo",charenvoie,1,1);
-        Serial.println(bret);
-        boul=false;
-      }
+
+      //Envoie les données via MQTT
+      bret=MQTTcli.publish("Meteo",charenvoie,0,1);
+      Serial.println(bret);
+      //Permet de faire une mesure à la prochain interruption du timer0
+      boul=false;
     }
-    else
-    {
+  }
+  else
+  {
     Serial.println("WiFi Disconnected");
-    }
+  }
 }
